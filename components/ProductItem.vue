@@ -6,35 +6,19 @@
           <nuxt-img
             preset="productThumbnail"
             class="img-fluid"
-            :src="`${config.imageFolder}${product.localThumb}`"
+            :src="`${config.imageFolder}${product.localThumbs[0]}`"
             :alt="product.linkTitle"
           />
         </NuxtLink>
         <div
-          class="
-            w-100
-            d-flex
-            justify-content-center
-            position-absolute
-            bottom-0
-            start-0
-            mb-4
-          "
+          class="w-100 d-flex justify-content-center position-absolute bottom-0 start-0 mb-4"
         >
           <NuxtLink
             :to="`/produkt/${product.slug}/`"
-            class="flex-shrink-0 btn btn-sm btn-primary px-3 border-end"
-            style="border-radius: 30px 0 0 30px"
+            class="flex-shrink-0 btn btn-sm btn-primary px-3"
+            style="border-radius: 30px"
             :title="product.linkTitle"
             >Testbericht</NuxtLink
-          >
-          <a
-            :href="product.shopLink"
-            class="flex-shrink-0 btn btn-sm btn-primary px-3"
-            style="border-radius: 0 30px 30px 0"
-            target="_blank"
-            rel="nofollow noopener"
-            >Bestellen</a
           >
         </div>
       </div>
@@ -53,7 +37,15 @@
           ></small>
           <small>({{ product.reviewCount }})</small>
         </div>
-        <div class="mb-4 h5">{{ product.name }}</div>
+        <div class="mb-4 h5">
+          <nuxt-link
+            :to="`/produkt/${product.slug}/`"
+            class="noLinkStyle"
+            :title="product.name"
+          >
+            {{ product.name }}
+          </nuxt-link>
+        </div>
       </div>
       <div class="d-flex border-top">
         <small class="flex-fill text-center border-end py-2"
@@ -91,27 +83,13 @@ export default {
     product: Object,
   },
   data() {
-    // hol die kategorie vom produkt
-    const categoryName =
-      this.product.categories[this.product.categories.length - 2];
-
-    // get the category object with its subcategories
+    // get the category data
     let categoryData = categories.find(
-      (x) =>
-        x.key === categoryName.toLowerCase() ||
-        x.subCategories.find((y) => y.key == categoryName.toLowerCase())
+      (category) => category.name === this.product.category
     );
 
-    if (categoryData.key === categoryName.toLowerCase()) {
-      // console.log("we have the category key");
-    } else {
-      // finde die subcategory und hole den key
-      categoryData = categoryData.subCategories.find(
-        (x) => x.key === categoryName.toLowerCase()
-      );
-    }
     // get the brand data
-    const brandData = brands.find((x) => x.name === this.product.brand);
+    let brandData = brands.find((brand) => brand.name === this.product.brand);
 
     return {
       config,
@@ -126,3 +104,29 @@ export default {
   },
 };
 </script>
+
+
+<style scoped>
+.course-item {
+  min-height: 450px; /* Adjust this value based on your desired minimum height */
+  display: flex;
+  flex-direction: column;
+}
+
+.course-item .text-center {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.mb-4 h5 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  hyphens: auto;
+}
+</style>
+
