@@ -23,27 +23,42 @@
             </div>
 
             <Checklist />
-            <a
-              class="btn btn-primary py-3 px-5"
+            <button
+              class="btn btn-primary py-3 px-5 snipcart-add-item"
+              :data-item-id="product.name"
+              :data-item-price="calculatedPrice"
+              :data-item-description="product.name"
+              :data-item-url="config.hostname + 'produkt/' + slug"
+              :data-item-image="
+                convertToWebp('/assets/images/' + getProductImage())
+              "
+              :data-item-name="product.name"
               target="_blank"
               rel="nofollow noopener"
-              :href="affiliateLink"
+              style="display: block; width: 100%"
             >
               Bestellen
-            </a>
+            </button>
           </div>
           <div class="col-lg-4 fadeInUp">
             <ProductCard :product="product" />
             <div class="mt-5">
-              <a
-                class="btn btn-primary py-3 px-5"
+              <button
+                class="btn btn-primary py-3 px-5 snipcart-add-item"
+                :data-item-id="product.name"
+                :data-item-price="calculatedPrice"
+                :data-item-description="product.name"
+                :data-item-url="config.hostname + 'produkt/' + slug"
+                :data-item-image="
+                  convertToWebp('/assets/images/' + getProductImage())
+                "
+                :data-item-name="product.name"
                 target="_blank"
                 rel="nofollow noopener"
-                :href="affiliateLink"
                 style="display: block; width: 100%"
               >
-                {{ product.brand }} Online Shop
-              </a>
+                Bestellen
+              </button>
             </div>
           </div>
         </div>
@@ -68,6 +83,7 @@
 import config from "~/assets/data/config.json";
 import products from "~/assets/data/products.json";
 import db from "~/utils/database.js";
+import calculatePrice from "~/modules/calculatePrice";
 
 function customEncodeURI(str) {
   return str.split(" ").join("+");
@@ -121,7 +137,11 @@ export default {
     const slug = this.$route.params.slug;
     const product = db.products.getProductFromSlug(slug);
     const seoData = db.seo.getSeoForProduct(product);
-    const category = product.categories[product.categories.length - 2];
+    const category =
+      product.category ||
+      (product.categories && product.categories.length > 1
+        ? product.categories[product.categories.length - 2]
+        : "Sonstige");
     // const relevantProducts = db.products.getRandomProductsFromCategory(
     //   category,
     //   config.numberOfRelevantProduct
@@ -131,31 +151,72 @@ export default {
       .slice(0, 12);
 
     return {
+      slug,
       product,
       config,
       seoData,
       category,
       relevantProducts,
+      affiliateLink: config.affiliate.defaultLink,
     };
   },
   computed: {
-    affiliateLink() {
-      const defaultLink = this.config.affiliate.defaultLink;
-      const productName = customEncodeURI(this.product.name);
-      const url = new URL(defaultLink);
-
-      // Delete the existing 'k' and 'sprefix' parameters
-      url.searchParams.delete("k");
-      url.searchParams.delete("sprefix");
-
-      // Add the new 'k' and 'sprefix' parameters
-      const queryString = `k=${productName}&sprefix=${productName}`;
-      url.search = url.search
-        ? `${url.search}&${queryString}`
-        : `?${queryString}`;
-
-      return url.toString();
+    calculatedPrice() {
+      return calculatePrice(this.product.price);
     },
+  },
+  methods: {
+    getProductImage() {
+      if (this.product.localThumb) {
+        return this.product.localThumb;
+      } else if (
+        this.product.localThumbs &&
+        this.product.localThumbs.length > 0
+      ) {
+        return this.product.localThumbs[0];
+      } else {
+        // Return a default image url here, or just an empty string
+        return "";
+      }
+    },
+    convertToWebp(url) {
+      let dotIndex = url.lastIndexOf(".");
+      if (dotIndex === -1) {
+        return url; // No extension found, return the original url.
+      }
+      return url.substr(0, dotIndex) + ".webp";
+    },
+    async fetchAffiliateLink() {
+      try {
+        const response = await fetch(
+          "https://api.surrealnetworks.io/api/x/generate-link",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              domain: "example.com", // replace with your root domain
+              keyword: this.product.name,
+            }),
+          }
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          this.affiliateLink = data.affiliateLink;
+        } else {
+          console.error(
+            `Failed to generate affiliate link: ${response.status} ${response.statusText}`
+          );
+        }
+      } catch (error) {
+        console.error(`Error generating affiliate link: ${error}`);
+      }
+    },
+  },
+  created() {
+    this.fetchAffiliateLink();
   },
   jsonld() {
     return {
@@ -200,7 +261,7 @@ export default {
             "@type": "Offer",
             url: config.hostname + config.productUrl + this.product.slug + "/",
             priceCurrency: "EUR",
-            price: this.product.price,
+            price: this.calculatedPrice,
             priceValidUntil: "2024-11-20",
             itemCondition: "https://schema.org/NewCondition",
             availability: "https://schema.org/InStock",

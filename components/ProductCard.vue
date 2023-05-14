@@ -53,7 +53,10 @@
       </ul>
       <div class="sidebar-contact-info mt-4">
         <p class="mb-0">Preis</p>
-        <h3>{{ parseFloat(product.price).toFixed(2) }} EUR</h3>
+        <div class="h3">
+          {{ calculatedPrice }}
+          EUR
+        </div>
       </div>
     </div>
   </div>
@@ -63,6 +66,7 @@
 import config from "~/assets/data/config.json";
 import categories from "~/assets/data/categories.json";
 import brands from "~/assets/data/brands.json";
+import calculatePrice from "~/modules/calculatePrice";
 
 var he = require("he");
 
@@ -73,14 +77,12 @@ export default {
   },
   data() {
     const category =
-      this.product.categories[this.product.categories.length - 2];
-
+      this.product.category ||
+      (this.product.categories && this.product.categories.length > 1
+        ? this.product.categories[this.product.categories.length - 2]
+        : "Sonstige");
     // get the category object with its subcategories
-    let categoryData = categories.find(
-      (x) =>
-        x.key === category.toLowerCase() ||
-        x.subCategories.find((y) => y.key == category.toLowerCase())
-    );
+    let categoryData = categories.find((x) => x.key === category.toLowerCase());
 
     if (categoryData.key === category.toLowerCase()) {
       // console.log("we have the category key");
@@ -99,6 +101,11 @@ export default {
       categoryData,
       brandData,
     };
+  },
+  computed: {
+    calculatedPrice() {
+      return calculatePrice(this.product.price);
+    },
   },
   methods: {
     decode: function decodeEntity(str) {
